@@ -6,8 +6,8 @@ import (
 )
 
 var (
-	fmtsByStandard = []string{"rfc5424"}
-	fmtsByName     = []string{"syslog"}
+	fmtsByStandard = []string{"rfc5424", "rfc3164"}
+	fmtsByName     = []string{"syslog", "rfc3164"}
 )
 
 // ValidFormat returns if the given format matches one of the possible formats.
@@ -22,10 +22,11 @@ func ValidFormat(format string) bool {
 
 // A Parser parses the raw input as a map with a timestamp field.
 type Parser struct {
-	fmt     string
-	Raw     []byte
-	Result  map[string]interface{}
-	rfc5424 *RFC5424
+	fmt       string
+	Raw       []byte
+	Result    map[string]interface{}
+	rfc       RFC
+	delimiter Delimiter
 }
 
 // NewParser returns a new Parser instance.
@@ -36,7 +37,16 @@ func NewParser(f string) (*Parser, error) {
 
 	p := &Parser{}
 	p.detectFmt(strings.TrimSpace(strings.ToLower(f)))
-	p.newRFC5424Parser()
+	switch p.fmt {
+	case "rfc5424":
+		p.newRFC5424Parser()
+		p.delimiter = NewSyslogDelimiter(msgBufSize)
+		break
+	case "rfc3164":
+		p.newRFC3164Parser()
+		p.delimiter = NewRFC3164Delimiter(msgBufSize)
+		break
+	}
 	return p, nil
 }
 
@@ -63,7 +73,7 @@ func (p *Parser) detectFmt(f string) {
 func (p *Parser) Parse(b []byte) bool {
 	p.Result = map[string]interface{}{}
 	p.Raw = b
-	p.rfc5424.parse(p.Raw, &p.Result)
+	p.rfc.parse(p.Raw, &p.Result)
 	if len(p.Result) == 0 {
 		return false
 	}
