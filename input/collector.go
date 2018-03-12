@@ -117,7 +117,6 @@ func (s *TCPCollector) handleConnection(conn net.Conn, c chan<- *Event) {
 		panic(fmt.Sprintf("failed to create TCP connection parser:%s", err.Error()))
 	}
 
-	delimiter := NewSyslogDelimiter(msgBufSize)
 	reader := bufio.NewReader(conn)
 	var log string
 	var match bool
@@ -136,14 +135,15 @@ func (s *TCPCollector) handleConnection(conn net.Conn, c chan<- *Event) {
 				return
 			}
 
-			log, match = delimiter.Vestige()
+			log, match = parser.delimiter.Vestige()
 		} else {
 			stats.Add("tcpBytesRead", 1)
-			log, match = delimiter.Push(b)
+			log, match = parser.delimiter.Push(b)
 		}
 
 		// Log line available?
 		if match {
+			fmt.Println(log, "=========")
 			stats.Add("tcpEventsRx", 1)
 			if parser.Parse(bytes.NewBufferString(log).Bytes()) {
 				c <- &Event{
@@ -184,6 +184,7 @@ func (s *UDPCollector) Start(c chan<- *Event) error {
 				continue
 			}
 			log := strings.Trim(string(buf[:n]), "\r\n")
+			fmt.Println(log, "=========")
 			if parser.Parse(bytes.NewBufferString(log).Bytes()) {
 				c <- &Event{
 					Text:          log,
