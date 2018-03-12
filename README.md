@@ -1,6 +1,8 @@
 # Ekanite [![Circle CI](https://circleci.com/gh/ekanite/ekanite/tree/master.svg?style=svg)](https://circleci.com/gh/ekanite/ekanite/tree/master) [![GoDoc](https://godoc.org/github.com/ekanite/ekanite?status.png)](https://godoc.org/github.com/ekanite/ekanite) [![Go Report Card](https://goreportcard.com/badge/github.com/ekanite/ekanite)](https://goreportcard.com/report/github.com/ekanite/ekanite) [![Release](https://img.shields.io/github/release/ekanite/ekanite.svg)](https://github.com/ekanite/ekanite/releases)
 *Ekanite* is a high-performance syslog server with built-in text search. Its goal is to do a couple of things, and do them well -- accept log messages over the network, and make it easy to search the messages. What it lacks in feature, it makes up for in focus. Built in [Go](http://www.golang.org), it has no external dependencies, which makes deployment easy.
 
+_Keep master branch for tracking ekanite upstream_
+
 Features include:
 
 - Supports reception of log messages over UDP, TCP, and TCP with TLS.
