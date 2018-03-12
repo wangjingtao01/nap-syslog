@@ -30,7 +30,7 @@ type RFC3164Delimiter struct {
 func NewRFC3164Delimiter(maxSize int) *RFC3164Delimiter {
 	s := &RFC3164Delimiter{}
 	s.buffer = make([]byte, 0, maxSize)
-	s.regex = startRegex
+	s.regex = rfc3164startRegex
 	return s
 }
 
@@ -43,11 +43,11 @@ func (s *RFC3164Delimiter) Push(b byte) (string, bool) {
 		return "", false
 	}
 
-	if s.regex == startRegex {
+	if s.regex == rfc3164startRegex {
 		// First match -- switch to the regex for embedded lines, and
 		// drop any leading characters.
 		s.buffer = s.buffer[delimiter[0]:]
-		s.regex = runRegex
+		s.regex = rfc3164runRegex
 		return "", false
 	}
 
