@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ekanite/ekanite/dispatch"
 	"github.com/ekanite/ekanite/input"
 )
 
@@ -21,6 +22,7 @@ const (
 	DefaultRetentionPeriod = 24 * time.Hour
 
 	RetentionCheckInterval = time.Hour
+	DefaultMaxNextChanSize = 1000000
 )
 
 // Engine stats
@@ -43,6 +45,10 @@ type Batcher struct {
 	duration time.Duration
 
 	c chan *input.Event
+
+	pipes []chan []*input.Event
+
+	e chan<- error
 }
 
 // NewBatcher returns a Batcher for EventIndexer e, a batching size of sz, a maximum duration
@@ -53,11 +59,19 @@ func NewBatcher(e EventIndexer, sz int, dur time.Duration, max int) *Batcher {
 		size:     sz,
 		duration: dur,
 		c:        make(chan *input.Event, max),
+		pipes:    make([]chan []*input.Event, 0),
 	}
+}
+
+func (b *Batcher) pipe(next chan []*input.Event) chan []*input.Event {
+	// next should be made
+	b.pipes = append(b.pipes, next)
+	return next
 }
 
 // Start starts the batching process.
 func (b *Batcher) Start(errChan chan<- error) error {
+	b.e = errChan
 	go func() {
 		batch := make([]*Event, 0, b.size)
 		timer := time.NewTimer(b.duration)
@@ -73,6 +87,22 @@ func (b *Batcher) Start(errChan chan<- error) error {
 			stats.Add("eventsIndexed", int64(len(batch)))
 			if errChan != nil {
 				errChan <- err
+			}
+			// dispatch
+			events := make([]*input.Event, 0)
+			for _, event := range batch {
+				events = append(events, event.Event)
+			}
+			for _, pipe := range b.pipes {
+				go func(p chan []*input.Event) {
+					select {
+					case p <- events:
+						break
+					default:
+						// ignore
+						stats.Add("dispatchEventFailed", int64(len(batch)))
+					}
+				}(pipe)
 			}
 			batch = make([]*Event, 0, b.size)
 		}
@@ -104,6 +134,17 @@ func (b *Batcher) Start(errChan chan<- error) error {
 // C returns the channel on the batcher to which events should be sent.
 func (b *Batcher) C() chan<- *input.Event {
 	return b.c
+}
+
+func (b *Batcher) E() chan<- error {
+	return b.e
+}
+
+// add dispatcher
+func (b *Batcher) Add(d dispatch.Dispatcher) {
+	go func() {
+		d.Listen(b.pipe(make(chan []*input.Event)))
+	}()
 }
 
 // Engine is the component that performs all indexing.

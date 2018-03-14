@@ -143,7 +143,6 @@ func (s *TCPCollector) handleConnection(conn net.Conn, c chan<- *Event) {
 
 		// Log line available?
 		if match {
-			fmt.Println(log, "=========")
 			stats.Add("tcpEventsRx", 1)
 			if parser.Parse(bytes.NewBufferString(log).Bytes()) {
 				c <- &Event{
@@ -184,7 +183,6 @@ func (s *UDPCollector) Start(c chan<- *Event) error {
 				continue
 			}
 			log := strings.Trim(string(buf[:n]), "\r\n")
-			fmt.Println(log, "=========")
 			if parser.Parse(bytes.NewBufferString(log).Bytes()) {
 				c <- &Event{
 					Text:          log,

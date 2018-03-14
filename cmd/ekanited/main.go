@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/ekanite/ekanite"
+	"github.com/ekanite/ekanite/dispatch"
 	"github.com/ekanite/ekanite/input"
 	"github.com/ekanite/ekanite/status"
 )
@@ -60,6 +61,7 @@ const (
 	DefaultDiagsIface      = "localhost:9951"
 	DefaultTCPServer       = "localhost:5514"
 	DefaultInputFormat     = "syslog"
+	DefaultDispatcherConf  = "dispatcher.json"
 )
 
 func main() {
@@ -81,6 +83,7 @@ func main() {
 		cpuProfile      = fs.String("cpuprof", "", "Where to write CPU profiling data. Not written if not set")
 		memProfile      = fs.String("memprof", "", "Where to write memory profiling data. Not written if not set")
 		inputFormat     = fs.String("input", DefaultInputFormat, "Message format of input (only syslog supported)")
+		dispatcher      = fs.String("dispatcher", DefaultDispatcherConf, "specify dispatcher json configuration file path")
 	)
 	fs.Usage = printHelp
 	fs.Parse(os.Args[1:])
@@ -140,6 +143,17 @@ func main() {
 	log.Printf("batching configured with size %d, timeout %s, max pending %d",
 		*batchSize, batcherTimeout, *indexMaxPending)
 
+	if *dispatcher != "" {
+		dispatchers, err := dispatch.NewDispatcher(*dispatcher)
+		if err != nil {
+			log.Fatalf("failed to create dispatcher from configuration file, %s", err)
+			return
+		}
+		for _, v := range dispatchers {
+			batcher.Add(v)
+		}
+	}
+
 	// Start draining batcher errors.
 	go drainLog("error indexing batch", errChan)
 
@@ -182,7 +196,7 @@ func main() {
 func startTCPCollector(iface, format string, tls *tls.Config, batcher *ekanite.Batcher) error {
 	collector, err := input.NewCollector("tcp", iface, format, tls)
 	if err != nil {
-		return fmt.Errorf(("failed to create TCP collector: %s"), err.Error())
+		return fmt.Errorf("failed to create TCP collector: %s", err.Error())
 	}
 	if err := collector.Start(batcher.C()); err != nil {
 		return fmt.Errorf("failed to start TCP collector: %s", err.Error())
