@@ -96,6 +96,9 @@ func (s *Responser) Send(response interface{}, trigger Trigger) {
 		false,              // mandatory
 		false,              // immediate
 		amqp.Publishing{
+			Headers: map[string]interface{}{
+				"__TypeId__": "net.skycloud.nap.messaging.model.LogEvent",
+			},
 			ContentType:     "application/json",
 			ContentEncoding: "utf8",
 			Body:            b,
