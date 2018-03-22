@@ -82,7 +82,7 @@ func NewResponser(d DispatcherInstance) (*Responser, error) {
 	return r, nil
 }
 
-func (s *Responser) Send(response interface{}, trigger Trigger) {
+func (s *Responser) Send(response interface{}, trigger Trigger, typeId string) {
 	b, err := json.Marshal(response)
 	if err != nil {
 		log.Print(err)
@@ -97,7 +97,7 @@ func (s *Responser) Send(response interface{}, trigger Trigger) {
 		false,              // immediate
 		amqp.Publishing{
 			Headers: map[string]interface{}{
-				"__TypeId__": "net.skycloud.nap.messaging.model.LogEvent",
+				"__TypeId__": typeId,
 			},
 			ContentType:     "application/json",
 			ContentEncoding: "utf8",

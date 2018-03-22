@@ -43,7 +43,7 @@ func (s *nap) do(event *input.Event) error {
 	if strings.Contains(event.Parsed["message"].(string), "'write memory' command") ||
 		strings.Contains(event.Parsed["message"].(string), "commit complete") {
 		//config updated
-		s.responser.Send(*event, s.triggers["config-updated"])
+		s.responser.Send(*event, s.triggers["config-updated"], "net.skycloud.nap.messaging.model.LogEvent")
 	}
 	return nil
 }
