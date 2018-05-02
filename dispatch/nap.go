@@ -37,12 +37,12 @@ func (s *nap) Listen(c chan []*input.Event) {
 }
 
 func (s *nap) do(event *input.Event) error {
-	log.Println("[nap]", event)
 	// filter
 	// commandPattern := regexp.MustCompile(`(executed the '(.+)' command?`)
 	if strings.Contains(event.Parsed["message"].(string), "'write memory' command") ||
 		strings.Contains(event.Parsed["message"].(string), "commit complete") {
 		//config updated
+		log.Println("[nap]", event)
 		s.responser.Send(*event, s.triggers["config-updated"], "net.skycloud.nap.messaging.model.LogEvent")
 	}
 	return nil
