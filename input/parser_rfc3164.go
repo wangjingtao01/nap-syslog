@@ -1,6 +1,7 @@
 package input
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 )
@@ -17,7 +18,7 @@ func (p *Parser) newRFC3164Parser() {
 }
 
 func (s *RFC3164) compileMatcher() {
-	s.matcher = make([]*regexp.Regexp, 4)
+	s.matcher = make([]*regexp.Regexp, 5)
 	pri := `<([0-9]{1,3})>`
 	ts := `([A-Za-z]+\s\d+(\s\d+)?\s\d+:\d+:\d+)`  // with year
 	chost := `([:alnum:]]{1,}(-[[:alnum:]]+){0,})` // cisco hostname
@@ -35,10 +36,48 @@ func (s *RFC3164) compileMatcher() {
 	s.matcher[2] = regexp.MustCompile(pri + ts + `\s` + jhost + `\s` + uuid + `:\s` + japp + `:\s` + msg)
 	// juniper host only
 	s.matcher[3] = regexp.MustCompile(pri + ts + `\s` + jhost + `:\s` + japp + `:\s` + msg)
+
+	// fortinet
+	leading := `(?s)`
+	// pri := `<([0-9]{1,3})>`
+	// date := `date=([12]\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]))`
+	date := `date=([0-9-]+)`
+	// time := `time=(2[0-3]|[01]?[0-9]):([0-5]?[0-9]):([0-5]?[0-9])`
+	time := `time=([0-9:]{8})`
+	devName := `devname=([0-9A-Za-z][0-9A-Za-z_-]*)`
+	devID := `devid=([0-9A-Za-z][0-9A-Za-z_-]*)`
+	logID := `logid=([0-9]+)`
+	logType := `type=([a-z]+)`
+	subType := `subtype=([a-z]+)`
+	level := `level=(emergency|alert|critical|error|warning|notification|information|debug)`
+	vd := `vd=([a-zA-Z]+)`
+	logDesc := `logdesc="([[:alnum:]\s]+)"`
+	// action := `action=([[:alpha:]]+)`
+	// user := `user="([[:alnum:]]+)"`
+	// ui := `ui=ssh\(([[:digit:]]+(\.[[:digit:]]+){3})\)` //
+	// quoteMsg := `msg="(.*)"$`
+	trailing := `(.*)$`
+	mstr := leading +
+		pri +
+		date + `\s` +
+		time + `\s` +
+		devName + `\s` +
+		devID + `\s` +
+		logID + `\s` +
+		logType + `\s` +
+		subType + `\s` +
+		level + `\s` +
+		vd + `\s` +
+		logDesc + `\s` +
+		// user + `\s` +
+		// ui + `\s` +
+		// quoteMsg
+		trailing
+	s.matcher[4] = regexp.MustCompile(mstr)
 }
 
 func (s *RFC3164) parse(raw []byte, result *map[string]interface{}) {
-	for i, v := range s.matcher {
+	for i, v := range s.matcher[0:4] {
 		m := v.FindStringSubmatch(string(raw))
 		if len(m) == 0 {
 			continue
@@ -57,6 +96,22 @@ func (s *RFC3164) parse(raw []byte, result *map[string]interface{}) {
 			(*result)["identifier"] = m[5]
 			(*result)["app"] = m[6]
 			(*result)["message"] = m[7]
+		}
+		stats.Add("rfc3164Parsed", 1)
+		return
+	}
+	// fortinet
+	m := s.matcher[4].FindStringSubmatch(string(raw))
+	for i, v := range m {
+		fmt.Println(i, ":", v)
+	}
+	if len(m) != 0 {
+		pri, _ := strconv.Atoi(m[1])
+		*result = map[string]interface{}{
+			"priority":   pri,
+			"timestamp":  m[2] + " " + m[3],
+			"identifier": m[4],
+			"message":    m[11],
 		}
 		stats.Add("rfc3164Parsed", 1)
 		return
