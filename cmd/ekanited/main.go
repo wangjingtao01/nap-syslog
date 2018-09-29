@@ -56,10 +56,10 @@ const (
 	DefaultIndexMaxPending = 1000
 	DefaultNumShards       = 4
 	DefaultRetentionPeriod = "168h"
-	DefaultQueryAddr       = "localhost:9950"
-	DefaultHTTPQueryAddr   = "localhost:8080"
-	DefaultDiagsIface      = "localhost:9951"
-	DefaultTCPServer       = "localhost:5514"
+	DefaultQueryAddr       = "0.0.0.0:9950"
+	DefaultHTTPQueryAddr   = "0.0.0.0:8080"
+	DefaultDiagsIface      = "0.0.0.0:9951"
+	DefaultTCPServer       = "0.0.0.0:5514"
 	DefaultInputFormat     = "syslog"
 	DefaultDispatcherConf  = "dispatcher.json"
 )
