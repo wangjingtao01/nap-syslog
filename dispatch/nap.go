@@ -39,8 +39,9 @@ func (s *nap) Listen(c chan []*input.Event) {
 func (s *nap) do(event *input.Event) error {
 	// filter
 	// commandPattern := regexp.MustCompile(`(executed the '(.+)' command?`)
-	if strings.Contains(event.Parsed["message"].(string), "'write memory' command") ||
-		strings.Contains(event.Parsed["message"].(string), "commit complete") {
+	if strings.Contains(event.Parsed["message"].(string), "'write memory' command") || // cisco
+		strings.Contains(event.Parsed["message"].(string), "commit complete") || // juniper
+		strings.Contains(strings.ToLower(event.Parsed["message"].(string)), "attribute configured") /*fortinet*/ {
 		//config updated
 		log.Println("[nap]", event)
 		s.responser.Send(*event, s.triggers["config-updated"], "net.skycloud.nap.messaging.model.LogEvent")
