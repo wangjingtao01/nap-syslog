@@ -18,7 +18,7 @@ func (p *Parser) newRFC3164Parser() {
 }
 
 func (s *RFC3164) compileMatcher() {
-	s.matcher = make([]*regexp.Regexp, 5)
+	s.matcher = make([]*regexp.Regexp, 7)
 	pri := `<([0-9]{1,3})>`
 	ts := `([A-Za-z]+\s\d+(\s\d+)?\s\d+:\d+:\d+)`  // with year
 	chost := `([:alnum:]]{1,}(-[[:alnum:]]+){0,})` // cisco hostname
@@ -74,9 +74,23 @@ func (s *RFC3164) compileMatcher() {
 		// quoteMsg
 		trailing
 	s.matcher[4] = regexp.MustCompile(mstr)
+
+	nexusPattern := pri +
+		uuid + `:\s` +
+		`(\d+\s[A-Za-z]+\s+\d\s\d+:\d+:\d+\s[\w]+)` + `:\s` +
+		trailing
+	s.matcher[5] = regexp.MustCompile(nexusPattern)
+
+	iosPattern := pri +
+		`(\d+)` + `:\s` +
+		`s([^ =:]+):\` + `:\s\*` +
+		`(\w+\s\s\d\s\d+:\d+:\d+\.\d+)` + `:\s` +
+		trailing
+	s.matcher[6] = regexp.MustCompile(iosPattern)
 }
 
 func (s *RFC3164) parse(raw []byte, result *map[string]interface{}) {
+	fmt.Println(string(raw))
 	for i, v := range s.matcher[0:4] {
 		m := v.FindStringSubmatch(string(raw))
 		if len(m) == 0 {
@@ -115,6 +129,37 @@ func (s *RFC3164) parse(raw []byte, result *map[string]interface{}) {
 		}
 		stats.Add("rfc3164Parsed", 1)
 		return
+	}
+
+	n := s.matcher[5].FindStringSubmatch(string(raw))
+	for i, v := range n {
+		fmt.Println(i, ":", v)
+	}
+	if len(m) != 0 {
+		pri, _ := strconv.Atoi(n[1])
+		*result = map[string]interface{}{
+			"priority":   pri,
+			"timestamp":  n[3],
+			"identifier": n[2],
+			"message":    n[4],
+		}
+		stats.Add("rfc3164Parsed", 1)
+		return
+	}
+
+	o := s.matcher[6].FindStringSubmatch(string(raw))
+	for i, v := range o {
+		fmt.Println(i, ":", v)
+	}
+	if len(o) != 0 {
+		pri, _ := strconv.Atoi(o[1])
+		*result = map[string]interface{}{
+			"priority":   pri,
+			"timestamp":  n[4],
+			"identifier": n[3],
+			"message":    n[5],
+		}
+		stats.Add("rfc3164Parsed", 1)
 	}
 	stats.Add("rfc3164Unparsed", 1)
 }

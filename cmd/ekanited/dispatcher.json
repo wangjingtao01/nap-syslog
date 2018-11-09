@@ -9,7 +9,11 @@
                 "config-updated": {
                     "queue": "config-updated-trigger",
                     "routingKey": "triggers.config.updated"
-                }
+                },
+				"interface-up-down": {
+					"queue": "interface-up-down-trigger",
+					"routingKey": "triggers.interface.up-down"
+				}
             }
         },
         {
