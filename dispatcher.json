@@ -1,0 +1,23 @@
+{
+    "dispatcher": [
+        {
+            "type": "nap",
+            "uri": "amqp://guest:guest@192.168.1.99:5672/",
+            "exchange": "messaging",
+            "exchangeType": "topic",
+            "triggers": {
+                "config-updated": {
+                    "queue": "config-updated-trigger",
+                    "routingKey": "triggers.config.updated"
+                },
+				"interface-up-down": {
+					"queue": "interface-up-down-trigger",
+					"routingKey": "triggers.interface.up-down"
+				}
+            }
+        },
+        {
+            "type": "elasticsearch"
+        }
+    ]
+}
